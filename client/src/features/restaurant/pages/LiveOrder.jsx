@@ -569,7 +569,7 @@ export default function LiveOrder() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-white/[0.06] text-xs">
-                {filteredOrders.map((ord) => {
+                {paginatedOrders.map((ord) => {
                   const isSelected = selectedIds.includes(ord.id);
                   return (
                     <tr
@@ -757,15 +757,28 @@ export default function LiveOrder() {
               </tbody>
             </table>
           </div>
+
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={filteredOrders.length}
+            pageSize={pageSize}
+            onPageChange={setCurrentPage}
+            onPageSizeChange={(size) => {
+              setPageSize(size);
+              setCurrentPage(1);
+            }}
+          />
         </div>
       ) : (
         /* VIEW 2: Interactive Kitchen Cards (KDS Tiles) */
-        <div
-          data-aos="fade-up"
-          data-aos-delay="150"
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5"
-        >
-          {filteredOrders.map((ord) => {
+        <div className="space-y-4">
+          <div
+            data-aos="fade-up"
+            data-aos-delay="150"
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5"
+          >
+            {paginatedOrders.map((ord) => {
             const isSelected = selectedIds.includes(ord.id);
             return (
               <div
@@ -959,6 +972,19 @@ export default function LiveOrder() {
             );
           })}
         </div>
+
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={filteredOrders.length}
+          pageSize={pageSize}
+          onPageChange={setCurrentPage}
+          onPageSizeChange={(size) => {
+            setPageSize(size);
+            setCurrentPage(1);
+          }}
+        />
+      </div>
       )}
 
       {filteredOrders.length === 0 && (

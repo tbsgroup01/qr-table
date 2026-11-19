@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { useTheme } from "../../../context/ThemeContext";
 import Cards from "../../../components/Cards";
+import Pagination from "../../../components/Pagination";
 import {
   getAllMenuItems,
   createMenuItem,
@@ -42,6 +43,9 @@ export default function Menu() {
   // Bulk Selection & Deletion States
   const [selectedIds, setSelectedIds] = useState([]);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(8);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -306,6 +310,16 @@ export default function Menu() {
     return matchesSearch && matchesDiet;
   });
 
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, dietFilter]);
+
+  const totalPages = Math.ceil(filteredItems.length / pageSize) || 1;
+  const paginatedItems = filteredItems.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize
+  );
+
   return (
     <div className="space-y-6 pb-12 select-none relative font-poppins">
       <header
@@ -558,7 +572,7 @@ export default function Menu() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-white/[0.06] text-xs">
-                {filteredItems.map((dish) => {
+                {paginatedItems.map((dish) => {
                   const isSelected = selectedIds.includes(dish.id);
                   return (
                     <tr
@@ -713,15 +727,28 @@ export default function Menu() {
               </tbody>
             </table>
           </div>
+
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={filteredItems.length}
+            pageSize={pageSize}
+            onPageChange={setCurrentPage}
+            onPageSizeChange={(size) => {
+              setPageSize(size);
+              setCurrentPage(1);
+            }}
+          />
         </div>
       ) : (
         /* VIEW 2: Dish Cards Grid */
-        <div
-          data-aos="fade-up"
-          data-aos-delay="150"
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5"
-        >
-          {filteredItems.map((dish) => {
+        <div className="space-y-4">
+          <div
+            data-aos="fade-up"
+            data-aos-delay="150"
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5"
+          >
+            {paginatedItems.map((dish) => {
             const isSelected = selectedIds.includes(dish.id);
             return (
               <div
@@ -868,6 +895,19 @@ export default function Menu() {
             );
           })}
         </div>
+
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={filteredItems.length}
+          pageSize={pageSize}
+          onPageChange={setCurrentPage}
+          onPageSizeChange={(size) => {
+            setPageSize(size);
+            setCurrentPage(1);
+          }}
+        />
+      </div>
       )}
 
       {filteredItems.length === 0 && (
