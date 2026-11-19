@@ -247,32 +247,7 @@ export default function AdminNavbar() {
                   : "bg-white/95 border-slate-200 text-slate-900 shadow-xl shadow-slate-900/15"
               }`}
             >
-              <div className="px-4 py-3 border-b border-inherit/20 mb-1 flex items-center gap-3">
-                {adminProfile.avatar ? (
-                  <img
-                    src={adminProfile.avatar}
-                    alt={displayName}
-                    className="w-9 h-9 rounded-full object-cover shadow-md shrink-0 border border-orange-500/40"
-                  />
-                ) : (
-                  <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-orange-500 to-amber-400 text-white font-extrabold text-sm flex items-center justify-center shadow-md shadow-orange-500/30 shrink-0 uppercase">
-                    {initial}
-                  </div>
-                )}
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-1.5">
-                    <p className="text-xs font-bold truncate">
-                      {displayName}
-                    </p>
-                    <span className="px-1.5 py-0.2 rounded bg-orange-500/15 text-orange-500 text-[9px] font-black uppercase">
-                      {adminProfile.role || "Admin"}
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-slate-400 truncate">
-                    {adminProfile.email || "No email"}
-                  </p>
-                </div>
-              </div>
+            
 
               <div className="px-1.5 space-y-0.5">
                 <button
@@ -322,7 +297,7 @@ export default function AdminNavbar() {
                 </button>
               </div>
 
-              <div className="my-1.5 border-t border-inherit/20" />
+     
 
               <div className="px-1.5">
                 <button

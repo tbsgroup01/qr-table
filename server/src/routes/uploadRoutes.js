@@ -4,7 +4,7 @@ import { uploadDish, uploadProfile, upload } from "../config/multer.js";
 const router = express.Router();
 
 const getFileUrl = (req, subFolder, filename) => {
-  const protocol = req.protocol;
+  const protocol = req.headers["x-forwarded-proto"] || req.protocol;
   const host = req.get("host");
   const subPath = subFolder ? `uploads/${subFolder}/${filename}` : `uploads/${filename}`;
   return `${protocol}://${host}/${subPath}`;

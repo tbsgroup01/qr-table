@@ -464,7 +464,6 @@ export default function LiveOrder() {
           />
         </div>
       </div>
-
       {selectedIds.length > 0 && (
         <div
           data-aos="zoom-in"

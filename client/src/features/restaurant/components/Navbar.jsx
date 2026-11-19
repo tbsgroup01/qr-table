@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { useState, useEffect, useRef } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import {
   Bell,
   Volume2,
@@ -11,6 +11,9 @@ import {
   Crown,
   Sparkles,
   Trophy,
+  User,
+  LogOut,
+  ChevronDown,
 } from "lucide-react";
 import { useTheme } from "../../../context/ThemeContext";
 import logoImage from "../../../assets/qr.png";
@@ -21,9 +24,12 @@ import {
 } from "../../../services/notificationServices";
 
 export default function Navbar() {
+  const navigate = useNavigate();
   const { theme, setTheme, isDark } = useTheme();
   const [isVoiceEnabled, setIsVoiceEnabled] = useState(true);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef(null);
 
   const [storedRestro, setStoredRestro] = useState(() => {
     try {
@@ -32,6 +38,41 @@ export default function Navbar() {
       return {};
     }
   });
+
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsDropdownOpen(false);
+      }
+    }
+    function handleKeyDown(event) {
+      if (event.key === "Escape") {
+        setIsDropdownOpen(false);
+      }
+    }
+    if (isDropdownOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+      document.addEventListener("keydown", handleKeyDown);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isDropdownOpen]);
+
+  const handleLogout = () => {
+    try {
+      localStorage.removeItem("userRole");
+      localStorage.removeItem("currentRestaurant");
+      localStorage.removeItem("adminUser");
+      localStorage.removeItem("token");
+      localStorage.removeItem("authToken");
+      sessionStorage.clear();
+    } catch {
+      // ignore
+    }
+    navigate("/login");
+  };
 
   useEffect(() => {
     const onRestroUpdate = (e) => {
@@ -345,26 +386,117 @@ export default function Navbar() {
         </div>
 
         <div
-          className={`hidden md:flex items-center gap-2 pl-2 border-l ${
+          ref={dropdownRef}
+          className={`relative flex items-center pl-2 border-l ${
             isDark ? "border-white/10" : "border-slate-200"
           }`}
         >
-          <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-orange-500 to-amber-500 flex items-center justify-center text-white font-bold text-xs shadow-md shadow-orange-500/20">
-            {restroInitial}
-          </div>
-          <div className="flex flex-col text-left">
-            <span
-              className={`text-xs font-bold leading-tight ${
-                isDark ? "text-white" : "text-slate-800"
+          <button
+            type="button"
+            onClick={() => setIsDropdownOpen((prev) => !prev)}
+            className={`flex items-center gap-2 px-2 py-1.5 rounded-xl border border-transparent transition-all cursor-pointer ${
+              isDropdownOpen
+                ? isDark
+                  ? "bg-white/[0.08] border-white/10 shadow-sm"
+                  : "bg-slate-100 border-slate-200 shadow-sm"
+                : isDark
+                ? "hover:bg-white/[0.05] hover:border-white/10"
+                : "hover:bg-slate-50 hover:border-slate-200"
+            }`}
+            aria-expanded={isDropdownOpen}
+            aria-haspopup="true"
+            title="Profile & Account Menu"
+          >
+            {storedRestro.logo ? (
+              <img
+                src={storedRestro.logo}
+                alt={restroName}
+                className="w-8 h-8 rounded-full object-cover shadow-md shrink-0 border border-orange-500/30"
+              />
+            ) : (
+              <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-orange-500 to-amber-500 flex items-center justify-center text-white font-bold text-xs shadow-md shadow-orange-500/20 shrink-0">
+                {restroInitial}
+              </div>
+            )}
+            <div className="hidden sm:flex flex-col text-left">
+              <span
+                className={`text-xs font-bold leading-tight truncate max-w-[120px] ${
+                  isDark ? "text-white" : "text-slate-800"
+                }`}
+              >
+                {restroName}
+              </span>
+              <span className="text-[10px] font-semibold text-orange-500 flex items-center gap-1 leading-tight">
+                <Crown size={10} className="fill-orange-500 text-orange-500 shrink-0" />
+                <span className="truncate max-w-[90px]">{currentPlan}</span>
+              </span>
+            </div>
+            <ChevronDown
+              size={14}
+              className={`text-slate-400 transition-transform duration-200 shrink-0 ${
+                isDropdownOpen ? "rotate-180" : ""
+              }`}
+            />
+          </button>
+
+          {isDropdownOpen && (
+            <div
+              className={`absolute right-0 top-full mt-2 w-64 rounded-2xl border shadow-2xl py-2 z-50 backdrop-blur-2xl transition-all animate-fade-in ${
+                isDark
+                  ? "bg-[#0b0f1e]/95 border-white/10 text-white shadow-black/80"
+                  : "bg-white/95 border-slate-200 text-slate-900 shadow-xl shadow-slate-900/15"
               }`}
             >
-              {restroName}
-            </span>
-            <span className="text-[10px] font-semibold text-orange-500 flex items-center gap-1 leading-tight">
-              <Crown size={10} className="fill-orange-500 text-orange-500" />
-              <span>{currentPlan}</span>
-            </span>
-          </div>
+             
+
+              <div className="px-1.5 space-y-0.5">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsDropdownOpen(false);
+                    navigate("/restaurant/settings");
+                  }}
+                  className={`w-full px-3 py-2.5 rounded-xl text-xs font-semibold flex items-center gap-2.5 transition-all cursor-pointer text-left ${
+                    isDark
+                      ? "hover:bg-white/10 text-slate-200 hover:text-white"
+                      : "hover:bg-orange-50 text-slate-700 hover:text-orange-600"
+                  }`}
+                >
+                  <div className="w-7 h-7 rounded-lg bg-orange-500/10 text-orange-500 flex items-center justify-center shrink-0">
+                    <User size={15} />
+                  </div>
+                  <div className="flex-1">
+                    <span className="block font-bold">Profile</span>
+                    <span className="block text-[10px] text-slate-400 font-normal">
+                      Restaurant & account details
+                    </span>
+                  </div>
+                </button>
+              </div>
+
+
+
+              <div className="px-1.5">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsDropdownOpen(false);
+                    handleLogout();
+                  }}
+                  className={`w-full px-3 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2.5 transition-all cursor-pointer text-left ${
+                    isDark
+                      ? "text-red-400 hover:bg-red-500/15 hover:text-red-300"
+                      : "text-red-600 hover:bg-red-50 hover:text-red-700"
+                  }`}
+                >
+                  <div className="w-7 h-7 rounded-lg bg-red-500/10 text-red-500 flex items-center justify-center shrink-0">
+                    <LogOut size={15} />
+                  </div>
+                  <span>Logout</span>
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </header>

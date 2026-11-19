@@ -16,9 +16,22 @@ const startServer = async () => {
     console.error("Database Connection Failed:", error.message);
   }
 
-  app.listen(PORT, () => {
-    console.log(`Server running on http://localhost:${PORT}`);
+  const server = app.listen(PORT, "0.0.0.0", () => {
+    console.log(`Server running on http://0.0.0.0:${PORT}`);
   });
+
+  const shutdown = (signal) => {
+    console.log(`Received ${signal}. Shutting down gracefully...`);
+    server.close(async () => {
+      try {
+        await sequelize.close();
+      } catch {}
+      process.exit(0);
+    });
+  };
+
+  process.on("SIGTERM", () => shutdown("SIGTERM"));
+  process.on("SIGINT", () => shutdown("SIGINT"));
 };
 
 startServer();
