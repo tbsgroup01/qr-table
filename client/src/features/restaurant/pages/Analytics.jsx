@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { useTheme } from "../../../context/ThemeContext";
 import Cards from "../../../components/Cards";
+import Pagination from "../../../components/Pagination";
 import { getAllQuizPlays } from "../../../services/quizServices";
 
 export default function Analytics() {
@@ -21,6 +22,8 @@ export default function Analytics() {
   const [hoveredIndex, setHoveredIndex] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [sessions, setSessions] = useState([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const [metrics, setMetrics] = useState({
     totalPlays: 0,
     freeDishesWon: 0,
@@ -169,6 +172,16 @@ export default function Analytics() {
 
     return matchesSearch && matchesStatus;
   });
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, statusFilter]);
+
+  const totalPages = Math.ceil(filteredSessions.length / pageSize) || 1;
+  const paginatedSessions = filteredSessions.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize
+  );
 
   return (
     <div className="space-y-6 pb-12 select-none relative font-poppins">
@@ -564,7 +577,7 @@ export default function Analytics() {
                   </td>
                 </tr>
               ) : (
-                filteredSessions.map((session) => (
+                paginatedSessions.map((session) => (
                   <tr
                     key={session.id || session.sessionId}
                     className={`transition-colors ${
@@ -633,6 +646,18 @@ export default function Analytics() {
             </tbody>
           </table>
         </div>
+
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={filteredSessions.length}
+          pageSize={pageSize}
+          onPageChange={setCurrentPage}
+          onPageSizeChange={(size) => {
+            setPageSize(size);
+            setCurrentPage(1);
+          }}
+        />
       </div>
     </div>
   );

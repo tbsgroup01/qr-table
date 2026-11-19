@@ -28,6 +28,7 @@ import {
   updateTableStatus,
   deleteTable,
 } from "../../../services/tablesServices";
+import Pagination from "../../../components/Pagination";
 import logoImage from "../../../assets/qr.png";
 
 export default function Tables() {
@@ -36,6 +37,9 @@ export default function Tables() {
 
   const [activeStatus, setActiveStatus] = useState("ALL");
   const [searchQuery, setSearchQuery] = useState("");
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(8);
 
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [editingTable, setEditingTable] = useState(null);
@@ -457,6 +461,16 @@ export default function Tables() {
     return matchesSearch && matchesStatus;
   });
 
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, activeStatus]);
+
+  const totalPages = Math.ceil(filteredTables.length / pageSize) || 1;
+  const paginatedTables = filteredTables.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize
+  );
+
   const handlePrintStandee = (table) => {
     const existingFrame = document.getElementById("standee-print-iframe");
     if (existingFrame) existingFrame.remove();
@@ -642,7 +656,7 @@ export default function Tables() {
       </div>
 
       <div data-aos="fade-up" data-aos-delay="150" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-        {filteredTables.map((table) => (
+        {paginatedTables.map((table) => (
           <div
             key={table.id}
             className={`p-5 rounded-2xl border shadow-xl flex flex-col justify-between transition-all duration-300 hover:-translate-y-1 ${
@@ -805,6 +819,18 @@ export default function Tables() {
           </div>
         ))}
       </div>
+
+      <Pagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        totalItems={filteredTables.length}
+        pageSize={pageSize}
+        onPageChange={setCurrentPage}
+        onPageSizeChange={(size) => {
+          setPageSize(size);
+          setCurrentPage(1);
+        }}
+      />
 
       {filteredTables.length === 0 && (
         <div

@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { useTheme } from "../../../context/ThemeContext";
 import Cards from "../../../components/Cards";
+import Pagination from "../../../components/Pagination";
 import {
   getAllQuizzes,
   createQuiz,
@@ -47,6 +48,9 @@ export default function Quiz() {
   // Bulk Selection & Deletion States
   const [selectedIds, setSelectedIds] = useState([]);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   const [quizList, setQuizList] = useState([]);
 
@@ -403,6 +407,16 @@ export default function Quiz() {
     return matchesSearch && matchesTab;
   });
 
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, activeTab]);
+
+  const totalPages = Math.ceil(filteredQuizzes.length / pageSize) || 1;
+  const paginatedQuizzes = filteredQuizzes.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize
+  );
+
   return (
     <div className="space-y-6 pb-12 select-none relative">
       <header
@@ -635,7 +649,7 @@ export default function Quiz() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-white/[0.06] text-xs">
-                {filteredQuizzes.map((quiz) => {
+                {paginatedQuizzes.map((quiz) => {
                   const isSelected = selectedIds.includes(quiz.id);
                   return (
                     <tr
@@ -793,15 +807,28 @@ export default function Quiz() {
               </tbody>
             </table>
           </div>
+
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={filteredQuizzes.length}
+            pageSize={pageSize}
+            onPageChange={setCurrentPage}
+            onPageSizeChange={(size) => {
+              setPageSize(size);
+              setCurrentPage(1);
+            }}
+          />
         </div>
       ) : (
         /* VIEW 2: Grid Cards */
-        <div
-          data-aos="fade-up"
-          data-aos-delay="150"
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5"
-        >
-          {filteredQuizzes.map((quiz) => {
+        <div className="space-y-4">
+          <div
+            data-aos="fade-up"
+            data-aos-delay="150"
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5"
+          >
+            {paginatedQuizzes.map((quiz) => {
             const isSelected = selectedIds.includes(quiz.id);
             return (
               <div
@@ -978,6 +1005,19 @@ export default function Quiz() {
             );
           })}
         </div>
+
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={filteredQuizzes.length}
+          pageSize={pageSize}
+          onPageChange={setCurrentPage}
+          onPageSizeChange={(size) => {
+            setPageSize(size);
+            setCurrentPage(1);
+          }}
+        />
+      </div>
       )}
 
       {filteredQuizzes.length === 0 && (
