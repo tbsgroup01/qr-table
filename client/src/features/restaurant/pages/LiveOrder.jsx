@@ -525,7 +525,6 @@ export default function LiveOrder() {
         </div>
       )}
 
-      {/* VIEW 1: Modern Table View with Multi-Select and Row Actions */}
       {viewMode === "table" ? (
         <div
           data-aos="fade-up"
