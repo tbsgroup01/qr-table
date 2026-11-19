@@ -465,7 +465,6 @@ export default function LiveOrder() {
         </div>
       </div>
 
-      {/* Floating Bulk Action Bar */}
       {selectedIds.length > 0 && (
         <div
           data-aos="zoom-in"
