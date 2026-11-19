@@ -311,6 +311,7 @@ export default function Signup() {
                       <input
                         type="tel"
                         name="phone"
+                        maxLength={10}
                         value={formData.phone}
                         onChange={handleChange}
                         placeholder="+91 9800000000"

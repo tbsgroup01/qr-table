@@ -2,8 +2,11 @@ import { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import AOS from "aos";
 import "aos/dist/aos.css";
-import { getAllRestaurants } from "../../../services/restroServices";
-import { getAllAdmins } from "../../../services/adminServices";
+import {
+  loginUser,
+  requestPasswordOtp,
+  submitResetPassword,
+} from "../../../services/authServices";
 import logo from "../../../assets/qr.png";
 import tableMockup from "../../../assets/table-mockup.jpg";
 import {
@@ -86,70 +89,37 @@ export default function Login() {
     setIsLoading(true);
 
     try {
-      // 1. Check if email matches an Admin in MySQL database
-      try {
-        const adminData = await getAllAdmins();
-        const admins = Array.isArray(adminData?.data)
-          ? adminData.data
-          : adminData?.data
-          ? [adminData.data]
-          : [];
+      const res = await loginUser({ email: trimmedEmail, password });
 
-        const matchedAdmin = admins.find(
-          (a) => a.email && a.email.toLowerCase() === trimmedEmail
-        );
+      if (res && res.success) {
+        localStorage.setItem("userRole", res.role);
+        localStorage.setItem("token", res.token);
+        localStorage.setItem("authToken", res.token);
 
-        if (matchedAdmin) {
-          if (matchedAdmin.password && matchedAdmin.password !== password) {
-            setErrorMessage("Incorrect admin password. Please try again.");
-            setIsLoading(false);
-            return;
-          }
-
-          localStorage.setItem("userRole", "admin");
-          localStorage.setItem("adminUser", JSON.stringify(matchedAdmin));
-          localStorage.setItem("authToken", "admin-session-token");
-          if (rememberMe) {
-            localStorage.setItem("rememberedEmail", trimmedEmail);
-          } else {
-            localStorage.removeItem("rememberedEmail");
-          }
-          navigate("/admin");
-          return;
-        }
-      } catch (adminErr) {
-        console.warn("Admin check warning:", adminErr);
-      }
-
-      // 2. Check if email matches a registered Restaurant in MySQL database
-      const restroRes = await getAllRestaurants();
-      const restaurants = Array.isArray(restroRes?.data) ? restroRes.data : [];
-
-      const matchedRestro = restaurants.find(
-        (r) => r.email && r.email.toLowerCase() === trimmedEmail
-      );
-
-      if (matchedRestro) {
-        localStorage.setItem("currentRestaurant", JSON.stringify(matchedRestro));
-        localStorage.setItem("userRole", "restaurant");
-        localStorage.setItem("authToken", "restaurant-session-token");
         if (rememberMe) {
           localStorage.setItem("rememberedEmail", trimmedEmail);
         } else {
           localStorage.removeItem("rememberedEmail");
         }
-        navigate("/restaurant");
+
+        if (res.role === "admin") {
+          localStorage.setItem("adminUser", JSON.stringify(res.user));
+          navigate("/admin");
+        } else if (res.role === "restaurant") {
+          localStorage.setItem("currentRestaurant", JSON.stringify(res.restaurant));
+          navigate("/restaurant");
+        }
         return;
       }
 
-      setErrorMessage(
-        "No account found with this email. Please check your credentials or register a restaurant."
-      );
+      setErrorMessage(res?.message || "Failed to login. Please try again.");
     } catch (err) {
       console.error("Login error:", err);
-      setErrorMessage(
-        err.message || "Failed to connect to server. Please try again."
-      );
+      const serverMessage =
+        err?.response?.data?.message ||
+        err?.message ||
+        "Failed to connect to server. Please try again.";
+      setErrorMessage(serverMessage);
     } finally {
       setIsLoading(false);
     }
@@ -169,33 +139,20 @@ export default function Login() {
     setForgotLoading(true);
 
     try {
-      const restroRes = await getAllRestaurants();
-      const restaurants = restroRes?.data || [];
-
-      const exists =
-        targetEmail === "admin@quicktable.com" ||
-        restaurants.some(
-          (r) =>
-            (r.email && r.email.toLowerCase() === targetEmail) ||
-            (r.phone && r.phone.trim() === targetEmail)
-        );
-
-      if (!exists && restaurants.length > 0) {
-        setForgotError("No account found with this email or phone.");
-        setForgotLoading(false);
-        return;
+      const res = await requestPasswordOtp(targetEmail);
+      if (res && res.success) {
+        setForgotStep("otp");
+        setForgotTimer(30);
+        setForgotOtp(["", "", "", ""]);
+        setTimeout(() => {
+          if (forgotOtpRefs.current[0]) forgotOtpRefs.current[0].focus();
+        }, 100);
+      } else {
+        setForgotError(res?.message || "No account found with this email.");
       }
-
-      setForgotStep("otp");
-      setForgotTimer(30);
-      setForgotOtp(["", "", "", ""]);
-      setTimeout(() => {
-        if (forgotOtpRefs.current[0]) forgotOtpRefs.current[0].focus();
-      }, 100);
-    } catch {
-      setForgotStep("otp");
-      setForgotTimer(30);
-      setForgotOtp(["", "", "", ""]);
+    } catch (err) {
+      const msg = err?.response?.data?.message || "No account found with this email.";
+      setForgotError(msg);
     } finally {
       setForgotLoading(false);
     }
@@ -245,7 +202,7 @@ export default function Login() {
     }, 800);
   };
 
-  const handleResetPassword = (e) => {
+  const handleResetPassword = async (e) => {
     e.preventDefault();
     setForgotError("");
 
@@ -260,10 +217,21 @@ export default function Login() {
     }
 
     setForgotLoading(true);
-    setTimeout(() => {
+    try {
+      const res = await submitResetPassword({
+        email: forgotEmail.trim().toLowerCase(),
+        newPassword,
+      });
+      if (res && res.success) {
+        setForgotStep("success");
+      } else {
+        setForgotError(res?.message || "Failed to update password.");
+      }
+    } catch (err) {
+      setForgotError(err?.response?.data?.message || "Failed to update password.");
+    } finally {
       setForgotLoading(false);
-      setForgotStep("success");
-    }, 800);
+    }
   };
 
   const resetModalState = () => {

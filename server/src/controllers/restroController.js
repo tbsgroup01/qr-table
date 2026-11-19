@@ -1,4 +1,5 @@
 import { Op } from "sequelize";
+import bcrypt from "bcrypt";
 import Restaurant from "../models/restroModel.js";
 import Table from "../models/tablesModel.js";
 import Revenue from "../models/revenueModel.js";
@@ -104,7 +105,7 @@ export const getRestaurantById = async (req, res, next) => {
 
 export const createRestaurant = async (req, res, next) => {
   try {
-    const { name, restaurantName, owner, ownerName, email, phone, address, status, plan } = req.body;
+    const { name, restaurantName, owner, ownerName, email, phone, address, status, plan, password } = req.body;
     const finalName = (name || restaurantName || "").trim();
 
     if (!finalName) {
@@ -114,10 +115,13 @@ export const createRestaurant = async (req, res, next) => {
       });
     }
 
+    const hashedPassword = password ? await bcrypt.hash(password.trim(), 10) : null;
+
     const newRestaurant = await Restaurant.create({
       name: finalName,
       owner: (owner || ownerName || "").trim() || null,
       email: email ? email.trim() : null,
+      password: hashedPassword,
       phone: phone ? phone.trim() : null,
       address: address ? address.trim() : null,
       status: status || "Active",
@@ -156,7 +160,14 @@ export const updateRestaurant = async (req, res, next) => {
       });
     }
 
-    await restaurant.update(req.body);
+    const updateData = { ...req.body };
+    if (updateData.password && String(updateData.password).trim()) {
+      updateData.password = await bcrypt.hash(String(updateData.password).trim(), 10);
+    } else {
+      delete updateData.password;
+    }
+
+    await restaurant.update(updateData);
 
     res.status(200).json({
       success: true,

@@ -24,6 +24,10 @@ const Restaurant = sequelize.define(
         isEmail: true,
       },
     },
+    password: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
     phone: {
       type: DataTypes.STRING,
       allowNull: true,

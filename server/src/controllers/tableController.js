@@ -2,6 +2,32 @@ import { Op } from "sequelize";
 import os from "os";
 import QRCode from "qrcode";
 import Table from "../models/tablesModel.js";
+import Restaurant from "../models/restroModel.js";
+import Plan from "../models/plansModel.js";
+
+export const getPlanTableLimit = (planName, plansList = []) => {
+  const normalized = String(planName || "Starter").trim().toLowerCase();
+
+  const matched = plansList.find((p) => {
+    const pName = String(p.name || "").trim().toLowerCase();
+    return pName === normalized || normalized.includes(pName) || pName.includes(normalized);
+  });
+
+  if (matched && matched.tablesLimit) {
+    const limitStr = String(matched.tablesLimit).toLowerCase();
+    if (limitStr.includes("unlimited")) return Infinity;
+    const match = limitStr.match(/\d+/);
+    if (match) return parseInt(match[0], 10);
+  }
+
+  if (normalized.includes("enterprise") || normalized.includes("ultimate") || normalized.includes("unlimited")) {
+    return Infinity;
+  }
+  if (normalized.includes("pro") || normalized.includes("growth")) {
+    return 25;
+  }
+  return 5;
+};
 
 export const getClientBaseUrl = () => {
   if (process.env.CLIENT_URL && process.env.CLIENT_URL.trim()) {
@@ -74,6 +100,28 @@ export const getAllTables = async (req, res, next) => {
     const occupiedCount = tables.filter((t) => t.status === "Occupied").length;
     const reservedCount = tables.filter((t) => t.status === "Reserved").length;
 
+    let planInfo = null;
+    if (restaurantId) {
+      try {
+        const restaurant = await Restaurant.findByPk(restaurantId);
+        if (restaurant) {
+          const allPlans = await Plan.findAll();
+          const maxLimit = getPlanTableLimit(restaurant.plan, allPlans);
+          const currentCount = totalTables;
+          planInfo = {
+            planName: restaurant.plan || "Starter Trial",
+            currentCount,
+            maxLimit: maxLimit === Infinity ? "Unlimited" : maxLimit,
+            maxLimitNumber: maxLimit,
+            isUnlimited: maxLimit === Infinity,
+            canAddMore: currentCount < maxLimit,
+          };
+        }
+      } catch (pErr) {
+        // non-blocking
+      }
+    }
+
     res.status(200).json({
       success: true,
       count: totalTables,
@@ -83,6 +131,7 @@ export const getAllTables = async (req, res, next) => {
         occupiedCount,
         reservedCount,
       },
+      planInfo,
       data: tables,
     });
   } catch (error) {
@@ -126,6 +175,32 @@ export const createTable = async (req, res, next) => {
       return res.status(400).json({
         success: false,
         message: "Restaurant ID and table number are required",
+      });
+    }
+
+    const restaurant = await Restaurant.findByPk(restaurantId);
+    if (!restaurant) {
+      return res.status(404).json({
+        success: false,
+        message: "Restaurant not found",
+      });
+    }
+
+    const allPlans = await Plan.findAll();
+    const maxLimit = getPlanTableLimit(restaurant.plan, allPlans);
+    const currentTableCount = await Table.count({
+      where: { restaurantId },
+    });
+
+    if (currentTableCount >= maxLimit) {
+      const planName = restaurant.plan || "Starter Trial";
+      return res.status(403).json({
+        success: false,
+        limitReached: true,
+        currentCount: currentTableCount,
+        maxLimit,
+        planName,
+        message: `Table limit reached for your ${planName} plan (${currentTableCount}/${maxLimit} tables created). Please upgrade your plan to generate more tables.`,
       });
     }
 

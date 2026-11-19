@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   QrCode,
   UtensilsCrossed,
@@ -17,6 +17,9 @@ import {
   AlertCircle,
   ExternalLink,
   Smartphone,
+  Crown,
+  ArrowUpRight,
+  Sparkles,
 } from "lucide-react";
 import { useTheme } from "../../../context/ThemeContext";
 import { useOrders } from "../../../context/OrderContext";
@@ -32,6 +35,7 @@ import Pagination from "../../../components/Pagination";
 import logoImage from "../../../assets/qr.png";
 
 export default function Tables() {
+  const navigate = useNavigate();
   const { isDark } = useTheme();
   const { getTableActiveOrder } = useOrders();
 
@@ -40,6 +44,9 @@ export default function Tables() {
 
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(8);
+
+  const [planInfo, setPlanInfo] = useState(null);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [editingTable, setEditingTable] = useState(null);
@@ -244,8 +251,18 @@ export default function Tables() {
   // Fetch tables from database controller
   const fetchTables = async () => {
     try {
-      const json = await getAllTables();
-      if (json.success && Array.isArray(json.data) && json.data.length > 0) {
+      const storedRestro = JSON.parse(
+        localStorage.getItem("currentRestaurant") || "{}"
+      );
+      const json = await getAllTables({
+        restaurantId: storedRestro.id || 1,
+      });
+
+      if (json && json.planInfo) {
+        setPlanInfo(json.planInfo);
+      }
+
+      if (json && json.success && Array.isArray(json.data)) {
         const formatted = json.data.map((t) => {
           const num = t.tableNumber || 1;
           const numStr = String(num).padStart(2, "0");
@@ -329,6 +346,10 @@ export default function Tables() {
   };
 
   const handleOpenAdd = () => {
+    if (planInfo && !planInfo.isUnlimited && !planInfo.canAddMore) {
+      setShowUpgradeModal(true);
+      return;
+    }
     setEditingTable(null);
     setFormData({
       tableNumber: `Table ${totalTables + 1 < 10 ? "0" : ""}${totalTables + 1}`,
@@ -409,15 +430,30 @@ export default function Tables() {
           seatingCapacity: parsedCapacity,
           status: "Available",
         });
+
+        if (json.limitReached) {
+          setTablesList((prev) => prev.filter((t) => t.id !== tempId));
+          setIsDrawerOpen(false);
+          setShowUpgradeModal(true);
+          return;
+        }
+
         if (json.success && json.data) {
           setTablesList((prev) =>
             prev.map((t) =>
               t.id === tempId ? { ...t, id: json.data.id } : t
             )
           );
+          fetchTables();
         }
       } catch (err) {
+        setTablesList((prev) => prev.filter((t) => t.id !== tempId));
         console.error("Error creating table via controller:", err);
+        const errMsg = err?.response?.data?.message || err?.message || "";
+        if (err?.response?.data?.limitReached || errMsg.toLowerCase().includes("limit reached")) {
+          setIsDrawerOpen(false);
+          setShowUpgradeModal(true);
+        }
       }
     }
 
@@ -588,14 +624,50 @@ export default function Tables() {
           </p>
         </div>
 
-        <button
-          type="button"
-          onClick={handleOpenAdd}
-          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-xs text-white bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 shadow-md shadow-orange-500/25 transition-all duration-200 hover:scale-[1.02] active:scale-95 cursor-pointer self-start sm:self-auto"
-        >
-          <Plus size={16} className="stroke-[2.5]" />
-          <span>Add New Table</span>
-        </button>
+        <div className="flex items-center gap-2.5 sm:gap-3 flex-wrap">
+          {planInfo && (
+            <div
+              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl border text-xs font-bold transition-all ${
+                !planInfo.canAddMore && !planInfo.isUnlimited
+                  ? "bg-rose-500/10 border-rose-500/30 text-rose-500"
+                  : isDark
+                  ? "bg-white/[0.04] border-white/10 text-slate-300"
+                  : "bg-orange-50/70 border-orange-200 text-orange-700"
+              }`}
+            >
+              <Crown
+                size={14}
+                className={
+                  !planInfo.canAddMore && !planInfo.isUnlimited
+                    ? "text-rose-500"
+                    : "text-orange-500"
+                }
+              />
+              <span>
+                {planInfo.planName}: {planInfo.currentCount} / {planInfo.maxLimit} Tables
+              </span>
+              {!planInfo.canAddMore && !planInfo.isUnlimited && (
+                <button
+                  type="button"
+                  onClick={() => navigate("/restaurant/plans")}
+                  className="ml-1 px-2 py-0.5 rounded-md bg-gradient-to-r from-orange-500 to-amber-500 text-white text-[10px] uppercase font-black hover:opacity-90 transition-opacity cursor-pointer flex items-center gap-0.5"
+                >
+                  <span>Upgrade</span>
+                  <ArrowUpRight size={11} />
+                </button>
+              )}
+            </div>
+          )}
+
+          <button
+            type="button"
+            onClick={handleOpenAdd}
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-xs text-white bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 shadow-md shadow-orange-500/25 transition-all duration-200 hover:scale-[1.02] active:scale-95 cursor-pointer self-start sm:self-auto"
+          >
+            <Plus size={16} className="stroke-[2.5]" />
+            <span>Add New Table</span>
+          </button>
+        </div>
       </header>
 
       <Cards items={metricCards} />
@@ -1038,6 +1110,71 @@ export default function Tables() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+      {showUpgradeModal && (
+        <div className="fixed inset-0 z-50 overflow-hidden flex items-center justify-center p-4 animate-fade-in">
+          <div
+            className="fixed inset-0 bg-black/70 backdrop-blur-sm transition-opacity"
+            onClick={() => setShowUpgradeModal(false)}
+          />
+          <div
+            className={`relative w-full max-w-md rounded-3xl border shadow-2xl p-6 sm:p-8 z-50 text-center animate-zoom-in ${
+              isDark
+                ? "bg-[#0b0f1e] border-white/10 text-white"
+                : "bg-white border-slate-200 text-slate-900"
+            }`}
+          >
+            <div className="w-16 h-16 rounded-3xl bg-gradient-to-tr from-amber-500/20 to-orange-500/20 border border-orange-500/30 text-orange-500 mx-auto flex items-center justify-center mb-5 shadow-lg shadow-orange-500/10">
+              <Crown size={32} className="stroke-[2.5]" />
+            </div>
+
+            <span className="px-3 py-1 rounded-full bg-rose-500/10 border border-rose-500/20 text-rose-500 text-xs font-black uppercase tracking-wider">
+              Limit Reached
+            </span>
+
+            <h3 className="text-xl sm:text-2xl font-black mt-3 tracking-tight">
+              Table QR Limit Reached!
+            </h3>
+
+            <p className="text-xs sm:text-sm text-slate-400 mt-2 leading-relaxed">
+              Your venue is currently on the{" "}
+              <strong className="text-orange-500 font-extrabold">
+                {planInfo?.planName || "Starter Trial"}
+              </strong>{" "}
+              plan which allows up to{" "}
+              <strong className="text-white dark:text-white font-extrabold">
+                {planInfo?.maxLimit || 5} active tables
+              </strong>
+              . Upgrade your subscription plan to unlock more scannable table QR codes and expand your dining floor.
+            </p>
+
+            <div className="mt-6 flex flex-col sm:flex-row items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setShowUpgradeModal(false)}
+                className={`w-full sm:w-1/2 py-3 rounded-2xl border font-bold text-xs cursor-pointer transition-all ${
+                  isDark
+                    ? "bg-white/5 hover:bg-white/10 border-white/10 text-slate-300"
+                    : "bg-slate-100 hover:bg-slate-200 border-slate-200 text-slate-700"
+                }`}
+              >
+                Maybe Later
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setShowUpgradeModal(false);
+                  navigate("/restaurant/plans");
+                }}
+                className="w-full sm:w-1/2 py-3 rounded-2xl font-bold text-xs text-white bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 shadow-lg shadow-orange-500/30 transition-all duration-200 hover:scale-[1.02] active:scale-95 cursor-pointer flex items-center justify-center gap-1.5"
+              >
+                <span>Upgrade Plan</span>
+                <ArrowUpRight size={14} className="stroke-[2.5]" />
+              </button>
+            </div>
           </div>
         </div>
       )}

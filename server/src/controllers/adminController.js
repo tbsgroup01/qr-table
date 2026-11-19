@@ -1,4 +1,5 @@
 import { Op } from "sequelize";
+import bcrypt from "bcrypt";
 import Admin from "../models/adminModel.js";
 import Restaurant from "../models/restroModel.js";
 import Table from "../models/tablesModel.js";
@@ -9,19 +10,22 @@ export const createAdmin = async (req, res, next) => {
   try {
     const { name, email, phone, role, password, address, avatar } = req.body;
 
-    if (!name || !email) {
+    if (!name || !email || !password) {
       return res.status(400).json({
         success: false,
-        message: "Admin name and email is required",
+        message: "Admin name, email and password are required",
       });
     }
 
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 12);
+
     const newAdmin = await Admin.create({
       name: name.trim(),
-      email: email ? email.trim() : null,
+      email: email.trim(),
       phone: phone ? phone.trim() : null,
       role: role ? role.trim() : null,
-      password: password ? password.trim() : null,
+      password: hashedPassword,
       address: address ? address.trim() : null,
       avatar: avatar || null,
     });
@@ -29,13 +33,20 @@ export const createAdmin = async (req, res, next) => {
     res.status(201).json({
       success: true,
       message: "Admin created successfully",
-      data: newAdmin,
+      data: {
+        id: newAdmin._id,
+        name: newAdmin.name,
+        email: newAdmin.email,
+        phone: newAdmin.phone,
+        role: newAdmin.role,
+        address: newAdmin.address,
+        avatar: newAdmin.avatar,
+      },
     });
   } catch (error) {
     next(error);
   }
 };
-
 export const updateAdmin = async (req, res, next) => {
   try {
     const id = req.params.id || req.body.id || 1;
@@ -64,13 +75,18 @@ export const updateAdmin = async (req, res, next) => {
     } = req.body;
 
     if (newPassword && newPassword.trim()) {
-      if (currentPassword && admin.password && currentPassword !== admin.password) {
-        return res.status(400).json({
-          success: false,
-          message: "Current password does not match",
-        });
+      if (currentPassword && admin.password) {
+        const isMatch = admin.password.startsWith("$2")
+          ? await bcrypt.compare(currentPassword, admin.password)
+          : currentPassword === admin.password;
+        if (!isMatch) {
+          return res.status(400).json({
+            success: false,
+            message: "Current password does not match",
+          });
+        }
       }
-      admin.password = newPassword.trim();
+      admin.password = await bcrypt.hash(newPassword.trim(), 10);
     }
 
     if (name !== undefined) admin.name = name.trim();
