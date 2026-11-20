@@ -213,6 +213,8 @@ export function OrderProvider({ children }) {
     const orderPayload = {
       orderId: newOrderId,
       table: `Table ${formattedTable}`,
+      customerName: customerName && customerName.trim() ? customerName.trim() : "Diner Guest",
+      customerPhone: customerPhone ? customerPhone.trim() : "",
       guests: 2,
       items: items.map((it) => ({
         name: it.name,

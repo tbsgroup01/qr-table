@@ -488,14 +488,6 @@ export default function Analytics() {
               ))}
             </div>
           </div>
-
-          <div className="mt-6 pt-4 border-t border-slate-100 dark:border-white/10 flex items-center justify-between text-xs text-slate-400">
-            <span>Overall Conversion</span>
-            <span className="font-bold text-emerald-500 flex items-center gap-0.5">
-              <ArrowUpRight size={14} />
-              68.5% win & claim
-            </span>
-          </div>
         </div>
       </div>
 

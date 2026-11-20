@@ -16,6 +16,8 @@ import {
   Trash2,
   List,
   LayoutGrid,
+  User,
+  Phone,
 } from "lucide-react";
 import { useTheme } from "../../../context/ThemeContext";
 import { useOrders } from "../../../context/OrderContext";
@@ -120,7 +122,8 @@ export default function LiveOrder() {
             <div class="border-b" style="font-size: 10px;">
               <div class="flex"><span class="bold">Bill No: ${order.id}</span><span class="bold">${order.table}</span></div>
               <div class="flex" style="color: #444;"><span>Date: 13-Nov-2026</span><span>Time: ${order.timestamp}</span></div>
-              <div class="flex" style="color: #444;"><span>Guests: ${order.guests}</span><span>Type: Dine-In</span></div>
+              <div class="flex" style="color: #444;"><span>Guests: ${order.guests || 2}</span><span>Type: Dine-In</span></div>
+              ${order.customerName ? `<div class="flex" style="color: #444;"><span>Customer: ${order.customerName}</span>${order.customerPhone ? `<span>Ph: ${order.customerPhone}</span>` : ""}</div>` : ""}
             </div>
 
             <div class="border-b">
@@ -842,6 +845,17 @@ export default function LiveOrder() {
                     </span>
                   </div>
 
+                  <div className="pt-1.5 flex items-center justify-between text-[11px]">
+                    <span className="font-semibold text-slate-300 truncate max-w-[140px]">
+                      {ord.customerName || "Diner Guest"}
+                    </span>
+                    {ord.customerPhone && (
+                      <span className="font-mono text-[10px] text-slate-400">
+                        {ord.customerPhone}
+                      </span>
+                    )}
+                  </div>
+
                   <div className="py-2.5 space-y-2">
                     {ord.items.map((item, idx) => (
                       <div
@@ -1112,6 +1126,38 @@ export default function LiveOrder() {
                 </div>
               </div>
 
+              {/* Customer Information Card */}
+              <div
+                className={`p-3.5 rounded-xl border flex items-center justify-between text-xs ${
+                  isDark ? "bg-white/[0.03] border-white/10" : "bg-slate-50 border-slate-200"
+                }`}
+              >
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-lg bg-orange-500/10 text-orange-500 flex items-center justify-center shrink-0">
+                    <User size={16} />
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-bold text-slate-400 block uppercase tracking-wider">
+                      Customer
+                    </span>
+                    <span className="font-extrabold text-sm block">
+                      {selectedOrder.customerName || "Diner Guest"}
+                    </span>
+                  </div>
+                </div>
+
+                {selectedOrder.customerPhone && (
+                  <a
+                    href={`tel:${selectedOrder.customerPhone}`}
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-bold text-xs hover:bg-emerald-500/20 transition-all cursor-pointer"
+                    title="Call customer"
+                  >
+                    <Phone size={13} />
+                    <span>{selectedOrder.customerPhone}</span>
+                  </a>
+                )}
+              </div>
+
               {/* Serving Mode Information */}
               <div
                 className={`p-3.5 rounded-xl border flex items-center justify-between text-xs ${
@@ -1293,9 +1339,15 @@ export default function LiveOrder() {
                   <span>Time: {printOrder.timestamp}</span>
                 </div>
                 <div className="flex justify-between text-gray-600">
-                  <span>Guests: {printOrder.guests}</span>
+                  <span>Guests: {printOrder.guests || 2}</span>
                   <span>Type: Dine-In</span>
                 </div>
+                {printOrder.customerName && (
+                  <div className="flex justify-between text-gray-600">
+                    <span>Customer: {printOrder.customerName}</span>
+                    {printOrder.customerPhone && <span>Ph: {printOrder.customerPhone}</span>}
+                  </div>
+                )}
               </div>
 
               <div className="py-2 border-b border-dashed border-black">

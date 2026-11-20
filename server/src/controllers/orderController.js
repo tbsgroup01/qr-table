@@ -83,6 +83,8 @@ export const createOrder = async (req, res, next) => {
     const {
       orderId,
       table,
+      customerName,
+      customerPhone,
       guests,
       items,
       itemsSummary,
@@ -170,6 +172,12 @@ export const createOrder = async (req, res, next) => {
       activeOrder.amount = newTotalAmount;
       activeOrder.note = mergedNote;
       activeOrder.status = "In Kitchen"; // Send back to kitchen so chefs prepare newly added items
+      if (customerName && customerName.trim()) {
+        activeOrder.customerName = customerName.trim();
+      }
+      if (customerPhone && customerPhone.trim()) {
+        activeOrder.customerPhone = customerPhone.trim();
+      }
       if (isPaid !== undefined) {
         activeOrder.isPaid = Boolean(isPaid);
       }
@@ -181,7 +189,7 @@ export const createOrder = async (req, res, next) => {
           restaurantId: 1,
           type: "ORDER",
           title: `New Items Added: ${activeOrder.orderId}`,
-          message: `${table} added items: ${incomingList.map((i) => `${i.qty || 1}x ${i.name || "Item"}`).join(", ")} (Total: ₹${newTotalAmount})`,
+          message: `${table} (${activeOrder.customerName || "Diner"}) added items: ${incomingList.map((i) => `${i.qty || 1}x ${i.name || "Item"}`).join(", ")} (Total: ₹${newTotalAmount})`,
           table: table,
           orderId: activeOrder.orderId,
           isRead: false,
@@ -211,6 +219,8 @@ export const createOrder = async (req, res, next) => {
     const newOrder = await Order.create({
       orderId: generatedOrderId,
       table,
+      customerName: customerName && customerName.trim() ? customerName.trim() : "Diner Guest",
+      customerPhone: customerPhone ? customerPhone.trim() : null,
       guests: guests || 2,
       items,
       itemsSummary: computedSummary || "",
@@ -227,7 +237,7 @@ export const createOrder = async (req, res, next) => {
         restaurantId: 1,
         type: "ORDER",
         title: `New Order ${generatedOrderId} Received`,
-        message: `${table} placed an order for ₹${parseFloat(amount) || 0} (${computedSummary || "Items"})`,
+        message: `${table} (${newOrder.customerName}) placed an order for ₹${parseFloat(amount) || 0} (${computedSummary || "Items"})`,
         table: table,
         orderId: generatedOrderId,
         isRead: false,

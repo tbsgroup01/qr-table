@@ -729,6 +729,7 @@ export default function CustomerMenu() {
                   </label>
                   <input
                     type="tel"
+                    maxLength={10}
                     placeholder="e.g. 98765 00000"
                     value={customerPhone}
                     onChange={(e) => setCustomerPhone(e.target.value)}

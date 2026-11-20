@@ -18,6 +18,24 @@ const Order = sequelize.define(
       type: DataTypes.STRING,
       allowNull: false,
     },
+    customerName: {
+      type: DataTypes.STRING,
+      allowNull: true,
+      defaultValue: "Dinner Guest",
+    },
+    customerPhone: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    customerName: {
+      type: DataTypes.STRING,
+      allowNull: true,
+      defaultValue: "Diner Guest",
+    },
+    customerPhone: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
     guests: {
       type: DataTypes.INTEGER,
       defaultValue: 2,
