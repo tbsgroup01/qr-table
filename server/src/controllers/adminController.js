@@ -62,7 +62,6 @@ export const updateAdmin = async (req, res, next) => {
         message: "Admin not found",
       });
     }
-
     const {
       name,
       email,
