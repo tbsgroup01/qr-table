@@ -485,30 +485,7 @@ export default function LiveOrder() {
               Clear selection
             </button>
           </div>
-
           <div className="flex items-center gap-2 flex-wrap">
-            <button
-              type="button"
-              onClick={() => {
-                selectedIds.forEach((id) => handleUpdateStatus(id, "Ready to Serve"));
-                setSelectedIds([]);
-              }}
-              className="px-3 py-1.5 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 border border-blue-500/30 font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer"
-            >
-              <UtensilsCrossed size={13} />
-              <span>Mark Ready</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                selectedIds.forEach((id) => handleUpdateStatus(id, "Completed"));
-                setSelectedIds([]);
-              }}
-              className="px-3 py-1.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer"
-            >
-              <CheckCircle2 size={13} />
-              <span>Mark Served</span>
-            </button>
             <button
               type="button"
               onClick={() =>
@@ -525,7 +502,6 @@ export default function LiveOrder() {
           </div>
         </div>
       )}
-
       {viewMode === "table" ? (
         <div
           data-aos="fade-up"

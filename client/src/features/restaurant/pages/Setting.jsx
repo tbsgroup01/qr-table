@@ -116,6 +116,9 @@ export default function Setting() {
           try {
             localStorage.setItem("currentRestaurant", JSON.stringify(data));
           } catch {}
+          window.dispatchEvent(
+            new CustomEvent("restaurant-updated", { detail: data })
+          );
         }
       } catch (err) {
         console.warn("Failed to load restaurant profile:", err);

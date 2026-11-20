@@ -1,8 +1,35 @@
 import { Op } from "sequelize";
 import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
 import Restaurant from "../models/restroModel.js";
 import Table from "../models/tablesModel.js";
 import Revenue from "../models/revenueModel.js";
+
+const getJwtSecret = () => process.env.JWT_SECRET || "quicktable_secure_jwt_secret_key_2026";
+
+const resolveRestaurantFromRequest = async (req) => {
+  const id = req.params?.id;
+  if (id && id !== "profile" && id !== "current" && id !== "undefined" && !isNaN(id)) {
+    const byId = await Restaurant.findByPk(id);
+    if (byId) return byId;
+  }
+
+  const authHeader = req.headers?.authorization;
+  if (authHeader && authHeader.startsWith("Bearer ")) {
+    try {
+      const token = authHeader.split(" ")[1];
+      const decoded = jwt.verify(token, getJwtSecret());
+      if (decoded && decoded.id && decoded.role === "restaurant") {
+        const byToken = await Restaurant.findByPk(decoded.id);
+        if (byToken) return byToken;
+      }
+    } catch {}
+  }
+
+  return await Restaurant.findOne({
+    order: [["createdAt", "DESC"]],
+  });
+};
 
 export const getAllRestaurants = async (req, res, next) => {
   try {
@@ -65,18 +92,7 @@ export const getAllRestaurants = async (req, res, next) => {
 
 export const getRestaurantById = async (req, res, next) => {
   try {
-    const id = req.params.id;
-    let restaurant = null;
-
-    if (id && id !== "profile" && id !== "current" && id !== "undefined" && !isNaN(id)) {
-      restaurant = await Restaurant.findByPk(id);
-    }
-
-    if (!restaurant) {
-      restaurant = await Restaurant.findOne({
-        order: [["createdAt", "DESC"]],
-      });
-    }
+    const restaurant = await resolveRestaurantFromRequest(req);
 
     if (!restaurant) {
       return res.status(404).json({
@@ -140,18 +156,7 @@ export const createRestaurant = async (req, res, next) => {
 
 export const updateRestaurant = async (req, res, next) => {
   try {
-    const id = req.params.id;
-    let restaurant = null;
-
-    if (id && id !== "profile" && id !== "current" && id !== "undefined" && !isNaN(id)) {
-      restaurant = await Restaurant.findByPk(id);
-    }
-
-    if (!restaurant) {
-      restaurant = await Restaurant.findOne({
-        order: [["createdAt", "DESC"]],
-      });
-    }
+    const restaurant = await resolveRestaurantFromRequest(req);
 
     if (!restaurant) {
       return res.status(404).json({

@@ -22,6 +22,7 @@ import {
   markNotificationAsRead,
   markAllNotificationsAsRead,
 } from "../../../services/notificationServices";
+import { getRestaurantProfile } from "../../../services/restroServices";
 
 export default function Navbar() {
   const navigate = useNavigate();
@@ -29,6 +30,7 @@ export default function Navbar() {
   const [isVoiceEnabled, setIsVoiceEnabled] = useState(true);
   const [showNotifications, setShowNotifications] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [logoError, setLogoError] = useState(false);
   const dropdownRef = useRef(null);
 
   const [storedRestro, setStoredRestro] = useState(() => {
@@ -38,6 +40,29 @@ export default function Navbar() {
       return {};
     }
   });
+
+  useEffect(() => {
+    setLogoError(false);
+  }, [storedRestro.logo]);
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const stored = JSON.parse(localStorage.getItem("currentRestaurant") || "{}");
+        const targetId = stored.id || "profile";
+        const res = await getRestaurantProfile(targetId);
+        if (res && res.data) {
+          setStoredRestro((prev) => ({ ...prev, ...res.data }));
+          try {
+            localStorage.setItem("currentRestaurant", JSON.stringify(res.data));
+          } catch {}
+        }
+      } catch (err) {
+        // non-blocking
+      }
+    };
+    fetchProfile();
+  }, []);
 
   useEffect(() => {
     function handleClickOutside(event) {
@@ -407,11 +432,12 @@ export default function Navbar() {
             aria-haspopup="true"
             title="Profile & Account Menu"
           >
-            {storedRestro.logo ? (
+            {storedRestro.logo && !logoError ? (
               <img
                 src={storedRestro.logo}
                 alt={restroName}
-                className="w-8 h-8 rounded-full object-cover shadow-md shrink-0 border border-orange-500/30"
+                onError={() => setLogoError(true)}
+                className="w-8 h-8 rounded-full object-cover shadow-md shrink-0 border border-orange-500/30 bg-white"
               />
             ) : (
               <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-orange-500 to-amber-500 flex items-center justify-center text-white font-bold text-xs shadow-md shadow-orange-500/20 shrink-0">
@@ -447,6 +473,31 @@ export default function Navbar() {
                   : "bg-white/95 border-slate-200 text-slate-900 shadow-xl shadow-slate-900/15"
               }`}
             >
+              <div className="px-4 py-3 border-b border-slate-100 dark:border-white/10 flex items-center gap-3">
+                {storedRestro.logo && !logoError ? (
+                  <img
+                    src={storedRestro.logo}
+                    alt={restroName}
+                    onError={() => setLogoError(true)}
+                    className="w-10 h-10 rounded-full object-cover border border-orange-500/30 shrink-0 shadow-sm bg-white"
+                  />
+                ) : (
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-orange-500 to-amber-500 flex items-center justify-center text-white font-bold text-sm shrink-0">
+                    {restroInitial}
+                  </div>
+                )}
+                <div className="min-w-0 flex-1">
+                  <div className={`font-bold text-xs truncate ${isDark ? "text-white" : "text-slate-900"}`}>
+                    {restroName}
+                  </div>
+                  <div className="text-[10px] text-slate-400 truncate">
+                    {storedRestro.email || "restaurant@quicktable.in"}
+                  </div>
+                  <div className="text-[10px] font-semibold text-orange-500 mt-0.5">
+                    {currentPlan}
+                  </div>
+                </div>
+              </div>
              
 
               <div className="px-1.5 space-y-0.5">
