@@ -34,7 +34,7 @@ export const createAdmin = async (req, res, next) => {
       success: true,
       message: "Admin created successfully",
       data: {
-        id: newAdmin._id,
+        id: newAdmin.id,
         name: newAdmin.name,
         email: newAdmin.email,
         phone: newAdmin.phone,
